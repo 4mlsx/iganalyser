@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Follower Analyzer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fafafa;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .upload-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+        }
+        .file-input {
+            margin-bottom: 10px;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .account-list {
+            list-style: none;
+            padding: 0;
+        }
+        .account-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .account-item:hover {
+            background-color: #f5f5f5;
+        }
+        .account-link {
+            color: #0095f6;
+            text-decoration: none;
+        }
+        .account-link:hover {
+            text-decoration: underline;
+        }
+        .status {
+            color: #666;
+            font-size: 14px;
+        }
+        button {
+            background-color: #0095f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0081d6;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Instagram Follower Analyzer</h1>
+        <div class="upload-section">
+            <div class="file-input">
+                <label for="followersFile">Upload followers.json:</label><br>
+                <input type="file" id="followersFile" accept=".json">
+            </div>
+            <div class="file-input">
+                <label for="followingFile">Upload following.json:</label><br>
+                <input type="file" id="followingFile" accept=".json">
+            </div>
+            <button onclick="analyzeFiles()">Analyze Files</button>
+            <div id="error" class="error"></div>
+        </div>
+        <div class="results" id="results">
+            <h2>Accounts that don't follow you back:</h2>
+            <ul class="account-list" id="accountList"></ul>
+        </div>
+    </div>
+
+    <script>
+        async function analyzeFiles() {
+            const followersFile = document.getElementById('followersFile').files[0];
+            const followingFile = document.getElementById('followingFile').files[0];
+            const errorDiv = document.getElementById('error');
+            const accountList = document.getElementById('accountList');
+            
+            accountList.innerHTML = '';
+            errorDiv.textContent = '';
+
+            if (!followersFile || !followingFile) {
+                errorDiv.textContent = 'Please upload both files';
+                return;
+            }
+
+            try {
+                const followers = await readFile(followersFile);
+                const following = await readFile(followingFile);
+
+                const followersData = JSON.parse(followers);
+                const followingData = JSON.parse(following);
+
+                // Extract usernames from followers
+                const followerUsernames = new Set(
+                    Array.isArray(followersData) 
+                        ? followersData.map(f => f.string_list_data[0].value)
+                        : []
+                );
+
+                // Extract usernames from following
+                const followingList = followingData.relationships_following || [];
+                const nonFollowersBack = followingList.filter(f => 
+                    !followerUsernames.has(f.string_list_data[0].value)
+                );
+
+                // Display results
+                nonFollowersBack.forEach(account => {
+                    const username = account.string_list_data[0].value;
+                    const li = document.createElement('li');
+                    li.className = 'account-item';
+                    li.innerHTML = `
+                        <a href="https://instagram.com/${username}" target="_blank" class="account-link">
+                            @${username}
+                        </a>
+                        <span class="status">Doesn't follow back</span>
+                    `;
+                    accountList.appendChild(li);
+                });
+
+                if (nonFollowersBack.length === 0) {
+                    accountList.innerHTML = '<li class="account-item">Everyone follows you back! 🎉</li>';
+                }
+
+            } catch (error) {
+                errorDiv.textContent = 'Error processing files. Please make sure you uploaded the correct JSON files.';
+                console.error(error);
+            }
+        }
+
+        function readFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsText(file);
+            });
+        }
+    </script>
+</body>
+</html>
