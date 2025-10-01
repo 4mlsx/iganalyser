@@ -1,171 +1,290 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Follow Back Checker</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;600&display=swap');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Follower Comparison Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
 
-    html, body {
-      height: 100%;
-    }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
 
-    body {
-      background: linear-gradient(145deg, #f0f4ff, #d9e4f5);
-      color: #1f2937;
-      padding: 1rem;
-      display: flex;
-      align-items: start;
-      justify-content: center;
-      min-height: 100vh;
-      overflow-y: auto;
-    }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
 
-    .container {
-      background: #ffffffcc;
-      backdrop-filter: blur(10px);
-      border-radius: 2rem;
-      padding: 2rem;
-      width: 100%;
-      max-width: 400px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-      text-align: center;
-    }
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
 
-    h1 {
-      margin-bottom: 1.5rem;
-      font-size: 1.5rem;
-    }
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
 
-    .file-label {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #e0eafc, #cfd9ff);
-      color: #1f2937;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      border-radius: 1.5rem;
-      cursor: pointer;
-      transition: transform 0.2s ease, background 0.3s ease;
-    }
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f1ff;
+        }
 
-    .file-label:hover {
-      transform: scale(1.02);
-      background: linear-gradient(135deg, #d6e0f5, #bfc9f9);
-    }
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8e9ff;
+        }
 
-    .file-label span {
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
+        input[type="file"] {
+            display: none;
+        }
 
-    .file-name {
-      font-size: 0.8rem;
-      color: #374151;
-      margin-top: 0.5rem;
-    }
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
 
-    .file-label input[type="file"] {
-      display: none;
-    }
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
 
-    button {
-      background: #007aff;
-      color: white;
-      padding: 0.75rem 1.5rem;
-      font-size: 1rem;
-      border: none;
-      border-radius: 1rem;
-      cursor: pointer;
-      margin-top: 1rem;
-      transition: background 0.3s ease;
-    }
+        .stat-box {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
 
-    button:hover {
-      background: #005bb5;
-    }
+        .stat-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
 
-    #result {
-      margin-top: 1.5rem;
-      text-align: left;
-      word-break: break-word;
-      font-size: 0.9rem;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-  </style>
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .user-list {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .user-item {
+            background: white;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border-left: 3px solid #764ba2;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: #ffe8e8;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            margin-top: 20px;
+            color: #667eea;
+            display: none;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Follow Back Checker</h1>
-    <label class="file-label">
-      <span>Step 1: Upload Your Followers File</span>
-      <input type="file" id="followersFile" accept=".json" />
-      <div class="file-name" id="followersFileName">No file chosen</div>
-    </label>
-    <label class="file-label">
-      <span>Step 2: Upload Your Following File</span>
-      <input type="file" id="followingFile" accept=".json" />
-      <div class="file-name" id="followingFileName">No file chosen</div>
-    </label>
-    <button id="compareBtn">Compare</button>
-    <div id="result"></div>
-  </div>
-  <script>
-    let followersData, followingData;
+    <div class="container">
+        <h1>📊 Instagram Follower Analyzer</h1>
+        <p class="subtitle">Upload your Instagram data ZIP to find who doesn't follow you back</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <p><strong>Click to upload</strong> or drag and drop your ZIP file here</p>
+            <p style="font-size: 12px; color: #999; margin-top: 10px;">Instagram data export ZIP file</p>
+        </div>
+        
+        <input type="file" id="fileInput" accept=".zip">
+        
+        <div class="loading" id="loading">
+            <p>⏳ Processing your data...</p>
+        </div>
+        
+        <div class="error" id="error"></div>
+        
+        <div class="results" id="results">
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-title">Total Followers</div>
+                    <div class="stat-value" id="followerCount">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Total Following</div>
+                    <div class="stat-value" id="followingCount">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Not Following Back</div>
+                    <div class="stat-value" id="notFollowingCount">0</div>
+                </div>
+            </div>
+            
+            <h2 style="margin-top: 20px; color: #333;">Users Not Following You Back:</h2>
+            <div class="user-list" id="userList"></div>
+        </div>
+    </div>
 
-    document.getElementById('followersFile').addEventListener('change', function (e) {
-      const file = e.target.files[0];
-      if (file) {
-        document.getElementById('followersFileName').textContent = file.name;
-        const reader = new FileReader();
-        reader.onload = function () {
-          followersData = JSON.parse(reader.result);
-        };
-        reader.readAsText(file);
-      }
-    });
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const results = document.getElementById('results');
 
-    document.getElementById('followingFile').addEventListener('change', function (e) {
-      const file = e.target.files[0];
-      if (file) {
-        document.getElementById('followingFileName').textContent = file.name;
-        const reader = new FileReader();
-        reader.onload = function () {
-          followingData = JSON.parse(reader.result);
-        };
-        reader.readAsText(file);
-      }
-    });
+        uploadArea.addEventListener('click', () => fileInput.click());
 
-    document.getElementById('compareBtn').addEventListener('click', function () {
-      if (!followersData || !followingData) {
-        alert('Please upload both files.');
-        return;
-      }
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
 
-      const followers = new Set(followersData.map(f => f.string_list_data[0].value));
-      const following = followingData.relationships_following.map(f => f.string_list_data[0].value);
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
 
-      const notFollowingBack = following.filter(user => !followers.has(user));
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.name.endsWith('.zip')) {
+                processZip(file);
+            } else {
+                showError('Please upload a ZIP file');
+            }
+        });
 
-      const resultDiv = document.getElementById('result');
-      if (notFollowingBack.length === 0) {
-        resultDiv.innerHTML = "<strong>Everyone follows you back!</strong>";
-      } else {
-        resultDiv.innerHTML = `<strong>Not following back (${notFollowingBack.length}):</strong><br>${notFollowingBack.join('<br>')}`;
-      }
-    });
-  </script>
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                processZip(file);
+            }
+        });
+
+        async function processZip(file) {
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            results.style.display = 'none';
+
+            try {
+                const zip = await JSZip.loadAsync(file);
+                
+                const followersPath = 'connections/followers_and_following/followers_1.json';
+                const followingPath = 'connections/followers_and_following/following.json';
+
+                const followersFile = zip.file(followersPath);
+                const followingFile = zip.file(followingPath);
+
+                if (!followersFile || !followingFile) {
+                    throw new Error('Could not find followers_1.json or following.json in the expected path');
+                }
+
+                const followersData = JSON.parse(await followersFile.async('text'));
+                const followingData = JSON.parse(await followingFile.async('text'));
+
+                const followers = new Set(
+                    followersData.map(item => 
+                        item.string_list_data?.[0]?.value || ''
+                    ).filter(v => v)
+                );
+
+                const following = followingData.relationships_following?.map(item => 
+                    item.string_list_data?.[0]?.value || ''
+                ).filter(v => v) || [];
+
+                const notFollowingBack = following.filter(user => !followers.has(user));
+
+                displayResults(followers.size, following.length, notFollowingBack);
+
+            } catch (err) {
+                showError('Error processing ZIP file: ' + err.message);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayResults(followerCount, followingCount, notFollowingBack) {
+            document.getElementById('followerCount').textContent = followerCount;
+            document.getElementById('followingCount').textContent = followingCount;
+            document.getElementById('notFollowingCount').textContent = notFollowingBack.length;
+
+            const userList = document.getElementById('userList');
+            userList.innerHTML = '';
+
+            if (notFollowingBack.length === 0) {
+                userList.innerHTML = '<p style="text-align: center; color: #666;">Everyone you follow follows you back! 🎉</p>';
+            } else {
+                notFollowingBack.forEach(user => {
+                    const div = document.createElement('div');
+                    div.className = 'user-item';
+                    div.textContent = user;
+                    userList.appendChild(div);
+                });
+            }
+
+            results.style.display = 'block';
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+    </script>
 </body>
 </html>
